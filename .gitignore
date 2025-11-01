@@ -1,0 +1,6 @@
+# Build
+*.o
+gts
+
+# Local
+local/
