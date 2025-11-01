@@ -35,7 +35,7 @@ int reverse_dup_pfd(int *fd, int std,
 }
 
 int read_end(char *buffer, int size, int end) {
-	char buff[200];
+	char buff[1000];
     ssize_t br, bw = 0;
 	while ((br = read(end, buff, 
 				      size - 1)) > 0) {
@@ -121,7 +121,7 @@ int get_first_commit(char *commit) {
 
 int checkout(char *commit) {
 	int status;
-	int size = 100;
+	int size = 1000;
 	char buffer[size];
 
 	char *const command_c[] = {
@@ -151,6 +151,41 @@ int go_next_commit() {
 	return 0;
 }
 
+int go_past_commit(int step) {
+	int status = 0;
+
+	char commit[GIT_HASH_LEN + 1];
+	snprintf(commit, sizeof(commit), 
+		     "HEAD@{%d}", step);
+	commit[GIT_HASH_LEN] = '\0';
+
+	status = checkout(commit);
+
+	return status;
+
+}
+
+int commit(char *msg) {
+	int status;
+	int size = 100;
+	char buffer[size];
+
+	char *const command_c[] = {
+		"git", 
+		"commit",
+		"-m", 
+		 msg,
+		NULL
+	};
+
+	status = read_command_stdout(buffer, size, 
+								 command_c, 
+								 STDERR_FILENO);
+
+	printf("%s", buffer);
+	return status;
+}
+
 void print_next_commit_file(char *file) {
 	if (go_next_commit() == 0) {
 		FILE *f = fopen(file, "r");
@@ -160,7 +195,9 @@ void print_next_commit_file(char *file) {
 }
 
 int main() {
-	print_next_commit_file(RECEIVE_FILE);
+	// print_next_commit_file(RECEIVE_FILE);
+
+	go_past_commit(1);
 
     return 0;
 }
