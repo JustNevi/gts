@@ -4,6 +4,18 @@
 #include <sys/wait.h>
 #include <string.h>
 
+#define RECEIVE_FILE "rx"
+#define TRANSFER_FILE "tx"
+
+#define GIT_HASH_LEN 40 
+
+void print_file(FILE *f) {
+	int br;	
+    while ((br = fgetc(f)) != EOF) {
+        printf("%c", br);
+    };
+}
+
 int execute_command(char *const *command) {
 	execvp(command[0], command);
 	fprintf(stderr, "Execute command failed.");
@@ -39,7 +51,7 @@ int read_end(char *buffer, int size, int end) {
 }
 
 int read_command_stdout(char *buffer, int size,
-						char *const *command) {
+						char *const *command, int std) {
     int status;
 	int pid;
     int fd[2];
@@ -54,9 +66,8 @@ int read_command_stdout(char *buffer, int size,
 		fprintf(stderr, "Fork failed.");
         return 1;
     } else if (pid == 0) {
-        if (reverse_dup_pfd(fd, STDOUT_FILENO, 
+        if (reverse_dup_pfd(fd, std, 
 							1, 0) != 0) {
-			fprintf(stderr, "Dup failed.");
             exit(EXIT_FAILURE);
         }
 		if (execute_command(command) != 0) {
@@ -81,19 +92,75 @@ int read_command_stdout(char *buffer, int size,
 	return 0;
 }
 
+int get_first_commit(char *commit) {
+	int status = 0;
+	int size = GIT_HASH_LEN * 100;
+	char buffer[size];
+
+	char *const command_log[] = {
+		"git", "log", 
+		"HEAD..main", 
+		"--pretty=%H", 
+		"--reverse", 
+		NULL
+	};
+
+	status = read_command_stdout(buffer, size, 
+							     command_log, 
+							     STDOUT_FILENO);
+
+	memcpy(commit, buffer, GIT_HASH_LEN);
+	commit[GIT_HASH_LEN] = '\0';
+
+	if (commit[0] == '\0') {
+		status = 1;
+	}
+
+	return status;
+}
+
+int checkout(char *commit) {
+	int status;
+	int size = 100;
+	char buffer[size];
+
+	char *const command_c[] = {
+		"git", 
+		"checkout", 
+		commit, 
+		NULL
+	};
+
+	status = read_command_stdout(buffer, size, 
+								 command_c, 
+								 STDERR_FILENO);
+	return status;
+}
+
+
+int go_next_commit() {
+	char commit[GIT_HASH_LEN + 1];
+
+	if (get_first_commit(commit) != 0) {
+		return 1;
+	} 
+	if (checkout(commit) != 0) {
+		return 1;
+	} 
+
+	return 0;
+}
+
+void print_next_commit_file(char *file) {
+	if (go_next_commit() == 0) {
+		FILE *f = fopen(file, "r");
+		print_file(f);
+		fclose(f);
+	}
+}
 
 int main() {
-	int status = 0;
-
-	int size = 5000;
-	char buffer[size];
-	char *const command[] = {"git", "log", "--oneline", NULL};
-
-	status = read_command_stdout(buffer, size, command);
-
-	printf("LEN: %ld\n", strlen(buffer));
-	printf("STDOUT:\n%s", buffer);
-	printf("STATUS: %d\n", status);
+	print_next_commit_file(RECEIVE_FILE);
 
     return 0;
 }
