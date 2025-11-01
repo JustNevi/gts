@@ -22,12 +22,16 @@ int reverse_dup_pfd(int *fd, int std,
 	return 0;
 }
 
-int read_end(char *buff, int size, int end) {
-    ssize_t br;
+int read_end(char *buffer, int size, int end) {
+	char buff[200];
+    ssize_t br, bw = 0;
 	while ((br = read(end, buff, 
 				      size - 1)) > 0) {
-		buff[br] = '\0'; 
+		memcpy(buffer + bw, buff, br);
+		bw += br;
 	}
+	buffer[bw] = '\0';
+
 	if (br == -1) {
 		return 1;	
 	}
@@ -81,13 +85,14 @@ int read_command_stdout(char *buffer, int size,
 int main() {
 	int status = 0;
 
-	int size = 500;
+	int size = 5000;
 	char buffer[size];
-	char *const command[] = {"git", "--version", NULL};
+	char *const command[] = {"git", "log", "--oneline", NULL};
 
 	status = read_command_stdout(buffer, size, command);
 
-	printf("STDOUT: %s", buffer);
+	printf("LEN: %ld\n", strlen(buffer));
+	printf("STDOUT:\n%s", buffer);
 	printf("STATUS: %d\n", status);
 
     return 0;
