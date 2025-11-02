@@ -9,11 +9,22 @@
 
 #define GIT_HASH_LEN 40 
 
-void print_file(FILE *f) {
-	int br;	
-    while ((br = fgetc(f)) != EOF) {
-        printf("%c", br);
-    };
+void stdin_to_file(char *p) {
+	FILE *f = fopen(p, "w");
+	int b;
+	while((b = fgetc(stdin)) != EOF) {
+		fputc(b, f);
+	}
+	fclose(f);
+}
+
+void file_to_stdout(char *p) {
+	FILE *f = fopen(p, "r");
+	int b;
+	while((b = fgetc(f)) != EOF) {
+		fputc(b, stdout);
+	}
+	fclose(f);
 }
 
 int execute_command(char *const *command) {
@@ -186,26 +197,15 @@ int git_commit(char *msg) {
 	return status;
 }
 
-void print_next_commit_file(char *file) {
+void print_next_commit_file(char *path) {
 	if (go_next_commit() == 0) {
-		FILE *f = fopen(file, "r");
-		print_file(f);
-		fclose(f);
+		file_to_stdout(path);
 	}
-}
-
-void stdin_to_file(char *p) {
-	FILE *f = fopen(p, "w");
-	int b;
-	while((b = fgetc(stdin)) != EOF) {
-		fputc(b, f);
-	}
-	fclose(f);
 }
 
 int main() {
-	// print_next_commit_file(RECEIVE_FILE);
+	print_next_commit_file(RECEIVE_FILE);
 
-	stdin_to_file(TRANSFER_FILE);
+	// stdin_to_file(TRANSFER_FILE);
     return 0;
 }
