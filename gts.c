@@ -103,6 +103,24 @@ int read_command_stdout(char *buffer, int size,
 	return 0;
 }
 
+int run_command(char *const *command,
+				char err) {
+	int status;
+	int size = 1000;
+	char buffer[size];
+
+	int std = STDOUT_FILENO;
+	if (err == 1) {
+		std = STDERR_FILENO;
+	}
+
+	status = read_command_stdout(buffer, size, 
+								 command, 
+								 std);
+
+	return status;
+}
+
 int get_first_commit(char *commit) {
 	int status = 0;
 	int size = GIT_HASH_LEN * 100;
@@ -131,21 +149,13 @@ int get_first_commit(char *commit) {
 }
 
 int git_checkout(char *commit) {
-	int status;
-	int size = 1000;
-	char buffer[size];
-
 	char *const command[] = {
 		"git", 
 		"checkout", 
 		commit, 
 		NULL
 	};
-
-	status = read_command_stdout(buffer, size, 
-								 command, 
-								 STDERR_FILENO);
-	return status;
+	return run_command(command, 1);
 }
 
 
@@ -177,29 +187,16 @@ int go_past_commit(int step) {
 }
 
 int git_add(char *fp) {
-	int status;
-	int size = 100;
-	char buffer[size];
-
 	char *const command[] = {
 		"git", 
 		"add",
 		 fp,
 		NULL
 	};
-
-	status = read_command_stdout(buffer, size, 
-								 command, 
-								 STDOUT_FILENO);
-
-	return status;
+	return run_command(command, 0);
 }
 
 int git_commit(char *msg) {
-	int status;
-	int size = 100;
-	char buffer[size];
-
 	char *const command[] = {
 		"git", 
 		"commit",
@@ -207,12 +204,7 @@ int git_commit(char *msg) {
 		 msg,
 		NULL
 	};
-
-	status = read_command_stdout(buffer, size, 
-								 command, 
-								 STDOUT_FILENO);
-
-	return status;
+	return run_command(command, 0);
 }
 
 void print_next_commit_file(char *path) {
