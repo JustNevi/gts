@@ -307,8 +307,8 @@ int receive(char *path) {
 }
 
 int send(char *path) {
-	detached_fetch();
 	stdin_hook_commit(path);
+	detached_fetch();
 	git_push();
 	return 0;
 }
@@ -338,6 +338,9 @@ int main(int argc, char *argv[]) {
 			      (char *[]){"rx", NULL})) {
 			rx_file = TRANSFER_FILE;
 			tx_file = RECEIVE_FILE; 
+		} else if (arg_is(arg, 
+				   (char *[]){"init", NULL})) {
+			rx = 1;
 		} else if (arg_is(arg, 
 				   (char *[]){"recv", NULL})) {
 			rx = 1;
