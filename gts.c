@@ -288,7 +288,7 @@ void stdin_hook_commit(char *path) {
 	}
 }
 
-int receive(char *path) {
+int detached_fetch() {
 	git_fetch();
 	git_checkout("main");
 	int steps = 1;
@@ -297,16 +297,19 @@ int receive(char *path) {
 	}
 	git_rebase();
 	go_past_commit(steps);
+	return 0;
+}
+
+int receive(char *path) {
+	detached_fetch();
 	print_next_commit_file(path, path);
 	return 0;
 }
 
 int send(char *path) {
+	detached_fetch();
 	stdin_hook_commit(path);
-	if (now_is_last_commit() == 1) {
-		git_push();
-		return 0;
-	}
+	git_push();
 	return 0;
 }
 
