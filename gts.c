@@ -33,10 +33,14 @@ int execute_command(char *const *command) {
 	return 1;
 }
 
-int reverse_dup_pfd(int *fd, int std, 
+int reverse_dup_pfd(int *fd,
 					int end, int oth_end) {
     close(fd[oth_end]);
-	if (dup2(fd[end], std) == -1) {
+	if (dup2(fd[end], STDERR_FILENO) == -1) {
+		fprintf(stderr, "Dup pipe failed.");
+		return 1;
+	}
+	if (dup2(fd[end], STDOUT_FILENO) == -1) {
 		fprintf(stderr, "Dup pipe failed.");
 		return 1;
 	}
@@ -62,7 +66,7 @@ int read_end(char *buffer, int size, int end) {
 }
 
 int read_command_stdout(char *buffer, int size,
-						char *const *command, int std) {
+						char *const *command) {
     int status;
 	int pid;
     int fd[2];
@@ -77,8 +81,7 @@ int read_command_stdout(char *buffer, int size,
 		fprintf(stderr, "Fork failed.");
         return 1;
     } else if (pid == 0) {
-        if (reverse_dup_pfd(fd, std, 
-							1, 0) != 0) {
+        if (reverse_dup_pfd(fd, 1, 0) != 0) {
             exit(EXIT_FAILURE);
         }
 		if (execute_command(command) != 0) {
@@ -103,20 +106,13 @@ int read_command_stdout(char *buffer, int size,
 	return 0;
 }
 
-int run_command(char *const *command,
-				char err) {
+int run_command(char *const *command) {
 	int status;
 	int size = 1000;
 	char buffer[size];
 
-	int std = STDOUT_FILENO;
-	if (err == 1) {
-		std = STDERR_FILENO;
-	}
-
 	status = read_command_stdout(buffer, size, 
-								 command, 
-								 std);
+								 command);
 
 	return status;
 }
@@ -136,8 +132,7 @@ int get_first_commit(char *commit,
 	};
 
 	status = read_command_stdout(buffer, size, 
-							     command, 
-							     STDOUT_FILENO);
+							     command);
 
 	memcpy(commit, buffer, GIT_HASH_LEN);
 	commit[GIT_HASH_LEN] = '\0';
@@ -167,8 +162,7 @@ int get_first_msg_commit(char *commit,
 	};
 
 	status = read_command_stdout(buffer, size, 
-							     command, 
-							     STDOUT_FILENO);
+							     command);
 
 	memcpy(commit, buffer, GIT_HASH_LEN);
 	commit[GIT_HASH_LEN] = '\0';
@@ -193,7 +187,7 @@ int git_checkout(char *commit) {
 		commit, 
 		NULL
 	};
-	return run_command(command, 1);
+	return run_command(command);
 }
 
 int git_add(char *fp) {
@@ -203,7 +197,7 @@ int git_add(char *fp) {
 		 fp,
 		NULL
 	};
-	return run_command(command, 0);
+	return run_command(command);
 }
 
 int git_commit(char *msg) {
@@ -214,7 +208,7 @@ int git_commit(char *msg) {
 		 msg,
 		NULL
 	};
-	return run_command(command, 0);
+	return run_command(command);
 }
 
 int git_fetch() {
@@ -225,7 +219,7 @@ int git_fetch() {
 		"main",
 		NULL
 	};
-	return run_command(command, 0);
+	return run_command(command);
 }
 
 int git_rebase() {
@@ -235,7 +229,7 @@ int git_rebase() {
 		"origin/main",
 		NULL
 	};
-	return run_command(command, 0);
+	return run_command(command);
 }
 
 int git_push() {
@@ -246,7 +240,7 @@ int git_push() {
 		"main",
 		NULL
 	};
-	return run_command(command, 1);
+	return run_command(command);
 }
 
 int go_next_msg_commit(char *msg) {
