@@ -193,7 +193,6 @@ int git_commit(char *msg) {
 								 command, 
 								 STDERR_FILENO);
 
-	printf("%s", buffer);
 	return status;
 }
 
