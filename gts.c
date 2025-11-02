@@ -97,7 +97,7 @@ int get_first_commit(char *commit) {
 	int size = GIT_HASH_LEN * 100;
 	char buffer[size];
 
-	char *const command_log[] = {
+	char *const command[] = {
 		"git", "log", 
 		"HEAD..main", 
 		"--pretty=%H", 
@@ -106,7 +106,7 @@ int get_first_commit(char *commit) {
 	};
 
 	status = read_command_stdout(buffer, size, 
-							     command_log, 
+							     command, 
 							     STDOUT_FILENO);
 
 	memcpy(commit, buffer, GIT_HASH_LEN);
@@ -124,7 +124,7 @@ int git_checkout(char *commit) {
 	int size = 1000;
 	char buffer[size];
 
-	char *const command_c[] = {
+	char *const command[] = {
 		"git", 
 		"checkout", 
 		commit, 
@@ -132,7 +132,7 @@ int git_checkout(char *commit) {
 	};
 
 	status = read_command_stdout(buffer, size, 
-								 command_c, 
+								 command, 
 								 STDERR_FILENO);
 	return status;
 }
@@ -170,7 +170,7 @@ int git_commit(char *msg) {
 	int size = 100;
 	char buffer[size];
 
-	char *const command_c[] = {
+	char *const command[] = {
 		"git", 
 		"commit",
 		"-m", 
@@ -179,7 +179,7 @@ int git_commit(char *msg) {
 	};
 
 	status = read_command_stdout(buffer, size, 
-								 command_c, 
+								 command, 
 								 STDERR_FILENO);
 
 	printf("%s", buffer);
