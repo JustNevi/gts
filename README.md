@@ -2,6 +2,10 @@
 
 The tool is written in C that helps transfer messages through git repository.
 
+## Dependencies
+
+- git
+
 ## Usage
 
 Roles: `TX`, `RX`.
