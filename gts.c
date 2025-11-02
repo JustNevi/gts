@@ -12,7 +12,7 @@
 void stdin_to_file(char *p) {
 	FILE *f = fopen(p, "w");
 	int b;
-	while((b = fgetc(stdin)) != EOF) {
+	while ((b = fgetc(stdin)) != EOF) {
 		fputc(b, f);
 	}
 	fclose(f);
@@ -21,7 +21,7 @@ void stdin_to_file(char *p) {
 void file_to_stdout(char *p) {
 	FILE *f = fopen(p, "r");
 	int b;
-	while((b = fgetc(f)) != EOF) {
+	while ((b = fgetc(f)) != EOF) {
 		fputc(b, stdout);
 	}
 	fclose(f);
@@ -121,14 +121,15 @@ int run_command(char *const *command,
 	return status;
 }
 
-int get_first_commit(char *commit) {
+int get_first_commit(char *commit,
+					 char *branch) {
 	int status = 0;
 	int size = GIT_HASH_LEN * 100;
 	char buffer[size];
 
 	char *const command[] = {
 		"git", "log", 
-		"HEAD..main", 
+		branch, 
 		"--pretty=%H", 
 		"--reverse", 
 		NULL
@@ -148,6 +149,43 @@ int get_first_commit(char *commit) {
 	return status;
 }
 
+
+int get_first_msg_commit(char *commit, 
+						 char *branch,
+						 char *msg) {
+	int status = 0;
+	int size = GIT_HASH_LEN * 100;
+	char buffer[size];
+
+	char *const command[] = {
+		"git", "log", 
+		branch, 
+		"--grep", msg,
+		"--pretty=%H", 
+		"--reverse", 
+		NULL
+	};
+
+	status = read_command_stdout(buffer, size, 
+							     command, 
+							     STDOUT_FILENO);
+
+	memcpy(commit, buffer, GIT_HASH_LEN);
+	commit[GIT_HASH_LEN] = '\0';
+
+	if (commit[0] == '\0') {
+		status = 1;
+	}
+
+	return status;
+}
+
+int now_is_last_commit() {
+	char commit[GIT_HASH_LEN + 1];
+	return get_first_commit(commit, 
+						    "HEAD..origin/main");
+}
+
 int git_checkout(char *commit) {
 	char *const command[] = {
 		"git", 
@@ -156,34 +194,6 @@ int git_checkout(char *commit) {
 		NULL
 	};
 	return run_command(command, 1);
-}
-
-
-int go_next_commit() {
-	char commit[GIT_HASH_LEN + 1];
-
-	if (get_first_commit(commit) != 0) {
-		return 1;
-	} 
-	if (git_checkout(commit) != 0) {
-		return 1;
-	} 
-
-	return 0;
-}
-
-int go_past_commit(int step) {
-	int status = 0;
-
-	char commit[GIT_HASH_LEN + 1];
-	snprintf(commit, sizeof(commit), 
-		     "HEAD@{%d}", step);
-	commit[GIT_HASH_LEN] = '\0';
-
-	status = git_checkout(commit);
-
-	return status;
-
 }
 
 int git_add(char *fp) {
@@ -207,24 +217,144 @@ int git_commit(char *msg) {
 	return run_command(command, 0);
 }
 
-void print_next_commit_file(char *path) {
-	if (go_next_commit() == 0) {
+int git_fetch() {
+	char *const command[] = {
+		"git", 
+		"fetch",
+		"origin",
+		"main",
+		NULL
+	};
+	return run_command(command, 0);
+}
+
+int git_rebase() {
+	char *const command[] = {
+		"git", 
+		"rebase",
+		"origin/main",
+		NULL
+	};
+	return run_command(command, 0);
+}
+
+int git_push() {
+	char *const command[] = {
+		"git", 
+		"push",
+		"origin",
+		"main",
+		NULL
+	};
+	return run_command(command, 1);
+}
+
+int go_next_msg_commit(char *msg) {
+	char commit[GIT_HASH_LEN + 1];
+
+	if (get_first_msg_commit(commit, 
+					     "HEAD..main",
+					  	 msg) != 0) {
+		return 1;
+	} 
+	if (git_checkout(commit) != 0) {
+		return 2;
+	} 
+
+	return 0;
+}
+
+int go_past_commit(int step) {
+	int status = 0;
+
+	char commit[GIT_HASH_LEN + 1];
+	snprintf(commit, sizeof(commit), 
+		     "HEAD@{%d}", step);
+	commit[GIT_HASH_LEN] = '\0';
+
+	status = git_checkout(commit);
+
+	return status;
+}
+
+void print_next_commit_file(char *path, char *msg) {
+	if (go_next_msg_commit(msg) == 0) {
 		file_to_stdout(path);
 	}
 }
 
-void stdin_hook_commit() {
+void stdin_hook_commit(char *path) {
 	git_checkout("main");
-	stdin_to_file(TRANSFER_FILE);
-	git_add(TRANSFER_FILE);
-	if (git_commit(TRANSFER_FILE) == 0) {
+	stdin_to_file(path);
+	git_add(path);
+	if (git_commit(path) == 0) {
 		go_past_commit(2);
 	} else {
 		go_past_commit(1);
 	}
 }
 
-int main() {
-	stdin_hook_commit();
+int receive(char *path) {
+	git_fetch();
+	git_checkout("main");
+	int steps = 1;
+	if (now_is_last_commit() == 0) {
+		steps = 2;
+	}
+	git_rebase();
+	go_past_commit(steps);
+	print_next_commit_file(path, path);
+	return 0;
+}
+
+int send(char *path) {
+	stdin_hook_commit(path);
+	if (now_is_last_commit() == 1) {
+		git_push();
+		return 0;
+	}
+	return 0;
+}
+
+int arg_is(char *arg, char **funcs) {
+	int i = 0;
+	char *func;
+	while ((func = funcs[i]) != NULL) {
+		if (strcmp(arg, func) == 0) {
+			return 1;
+		}
+		i++;
+	}
+	return 0;
+}
+
+int main(int argc, char *argv[]) {
+	char *rx_file = RECEIVE_FILE;
+	char *tx_file = TRANSFER_FILE;
+
+	char rx = 0;
+	char tx = 0;
+
+	for (int i = 0; i < argc; i++) {
+		char *arg = argv[i];
+		if (arg_is(arg, 
+			      (char *[]){"rx", NULL})) {
+			rx_file = TRANSFER_FILE;
+			tx_file = RECEIVE_FILE; 
+		} else if (arg_is(arg, 
+				   (char *[]){"recv", NULL})) {
+			rx = 1;
+		} else if (arg_is(arg, 
+				   (char *[]){"send", NULL})) {
+			tx = 1;
+		}
+	}
+
+	if (rx == 1) {
+		receive(rx_file);
+	} else if (tx == 1) {
+		send(tx_file);
+	}
+
     return 0;
 }
