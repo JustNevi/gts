@@ -339,9 +339,6 @@ int main(int argc, char *argv[]) {
 			rx_file = TRANSFER_FILE;
 			tx_file = RECEIVE_FILE; 
 		} else if (arg_is(arg, 
-				   (char *[]){"init", NULL})) {
-			rx = 1;
-		} else if (arg_is(arg, 
 				   (char *[]){"recv", NULL})) {
 			rx = 1;
 		} else if (arg_is(arg, 
