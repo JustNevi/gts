@@ -176,6 +176,25 @@ int go_past_commit(int step) {
 
 }
 
+int git_add(char *fp) {
+	int status;
+	int size = 100;
+	char buffer[size];
+
+	char *const command[] = {
+		"git", 
+		"add",
+		 fp,
+		NULL
+	};
+
+	status = read_command_stdout(buffer, size, 
+								 command, 
+								 STDOUT_FILENO);
+
+	return status;
+}
+
 int git_commit(char *msg) {
 	int status;
 	int size = 100;
@@ -191,7 +210,7 @@ int git_commit(char *msg) {
 
 	status = read_command_stdout(buffer, size, 
 								 command, 
-								 STDERR_FILENO);
+								 STDOUT_FILENO);
 
 	return status;
 }
@@ -202,9 +221,18 @@ void print_next_commit_file(char *path) {
 	}
 }
 
-int main() {
-	print_next_commit_file(RECEIVE_FILE);
+void stdin_hook_commit() {
+	git_checkout("main");
+	stdin_to_file(TRANSFER_FILE);
+	git_add(TRANSFER_FILE);
+	if (git_commit(TRANSFER_FILE) == 0) {
+		go_past_commit(2);
+	} else {
+		go_past_commit(1);
+	}
+}
 
-	// stdin_to_file(TRANSFER_FILE);
+int main() {
+	stdin_hook_commit();
     return 0;
 }
