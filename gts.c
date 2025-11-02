@@ -194,8 +194,18 @@ void print_next_commit_file(char *file) {
 	}
 }
 
+void stdin_to_file(char *p) {
+	FILE *f = fopen(p, "w");
+	int b;
+	while((b = fgetc(stdin)) != EOF) {
+		fputc(b, f);
+	}
+	fclose(f);
+}
+
 int main() {
 	// print_next_commit_file(RECEIVE_FILE);
 
+	stdin_to_file(TRANSFER_FILE);
     return 0;
 }
