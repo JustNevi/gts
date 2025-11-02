@@ -60,6 +60,10 @@ git checkout main^0
 echo "Hi, Bob!" | gts tx send
 ```
 
+```
+echo "How are you doing?" | gts tx send
+```
+
 Also `Bob` as `RX`:
 
 ```
@@ -68,12 +72,40 @@ gts rx recv
 ```
 
 ```
-echo "Hello, Alice. How are you?" | gts rx send
+echo "Hello, Alice" | gts rx send
+```
+
+```
+gts rx recv
+# Output: How are you doing?
+```
+
+```
+echo "I am doing well, thanks" | gts rx send
+```
+
+```
+echo "What is new with you?" | gts rx send
 ```
 
 `Alice` as `TX`:
 
 ```
 gts tx recv
-# Output: Hello, Alice. How are you?
+# Output: Hello, Alice
+```
+
+```
+gts tx recv
+# Output: I am doing well, thanks
+```
+
+```
+gts tx recv
+# Output: What is new with you?
+```
+
+```
+gts tx recv
+# No output. So this was the last message.
 ```
