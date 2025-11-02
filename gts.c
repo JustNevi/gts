@@ -119,7 +119,7 @@ int get_first_commit(char *commit) {
 	return status;
 }
 
-int checkout(char *commit) {
+int git_checkout(char *commit) {
 	int status;
 	int size = 1000;
 	char buffer[size];
@@ -144,7 +144,7 @@ int go_next_commit() {
 	if (get_first_commit(commit) != 0) {
 		return 1;
 	} 
-	if (checkout(commit) != 0) {
+	if (git_checkout(commit) != 0) {
 		return 1;
 	} 
 
@@ -159,13 +159,13 @@ int go_past_commit(int step) {
 		     "HEAD@{%d}", step);
 	commit[GIT_HASH_LEN] = '\0';
 
-	status = checkout(commit);
+	status = git_checkout(commit);
 
 	return status;
 
 }
 
-int commit(char *msg) {
+int git_commit(char *msg) {
 	int status;
 	int size = 100;
 	char buffer[size];
@@ -196,8 +196,6 @@ void print_next_commit_file(char *file) {
 
 int main() {
 	// print_next_commit_file(RECEIVE_FILE);
-
-	go_past_commit(1);
 
     return 0;
 }
